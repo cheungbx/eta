@@ -3,43 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bus ETA 1.3</title>
+    <title>Bus ETA 1.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
+        .truncate-cell {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-1 sm:p-2">
 
     <div class="max-w-4xl mx-auto">
         <header class="mb-2 border-b border-slate-700 pb-1">
-            <h1 id="headerTitle" class="text-[16px] sm:text-[50px] font-bold tracking-tight text-cyan-400 leading-tight">
+            <h1 id="headerTitle" class="text-[16px] sm:text-[50px] font-bold tracking-tight text-cyan-400 leading-tight truncate-cell">
                 縉皇居交通 <span id="headerTimestamp" class="font-normal text-slate-300 ml-1">Loading...</span>
             </h1>
         </header>
 
         <div class="bg-slate-800 rounded-lg shadow-xl overflow-hidden border border-slate-700">
             <div class="overflow-x-auto">
-                <table id="etaTable" class="w-full text-left border-collapse">
+                <table id="etaTable" class="w-full text-left border-collapse table-fixed">
                     <thead>
                         <tr class="bg-slate-700/60 border-b border-slate-700 text-slate-200 font-semibold text-[16px] sm:text-[50px] leading-tight">
-                            <th class="p-1 sm:p-3 w-[20%]">開往</th>
-                            <th class="p-1 sm:p-3 w-[20%]">路線</th>
-                            <th class="p-1 sm:p-3 w-[28%]">車站</th>
-                            <th class="p-1 sm:p-3 w-[32%]">分鐘</th>
+                            <th class="p-1 sm:p-3 w-[20%] truncate-cell">開往</th>
+                            <th class="p-1 sm:p-3 w-[20%] truncate-cell">路線</th>
+                            <th class="p-1 sm:p-3 w-[28%] truncate-cell">車站</th>
+                            <th class="p-1 sm:p-3 w-[32%] truncate-cell">分鐘</th>
                         </tr>
                     </thead>
-                    <tbody id="etaTableBody" class="divide-y divide-slate-700 text-[16px] sm:text-[] leading-tight">
+                    <tbody id="etaTableBody" class="divide-y divide-slate-700 text-[16px] sm:text-[50px] leading-tight">
                         <tr>
-                            <td colspan="4" class="p-4 text-center text-slate-400">Loading bus schedules and live APIs...</td>
+                            <td colspan="4" class="p-4 text-center text-slate-400 truncate-cell">Loading bus schedules and live APIs...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
         
-        <footer class="mt-2 text-center text-[11px] sm:text-[20px] text-slate-500">
+        <footer class="mt-2 text-center text-[11px] sm:text-[18px] text-slate-500">
             Ocean Point Private Bus & Public Transit ETA Monitor &bull; Times in HK Time (GMT+8)
         </footer>
     </div>
@@ -271,18 +276,18 @@
 
                 rowsHtml += `
                     <tr class="hover:bg-slate-700/45 transition-colors border-b border-slate-700/50">
-                        <td class="p-1 sm:p-3 align-middle text-slate-100">${instr.direction}</td>
-                        <td class="p-1 sm:p-3 align-middle">
+                        <td class="p-1 sm:p-3 align-middle text-slate-100 truncate-cell">${instr.direction}</td>
+                        <td class="p-1 sm:p-3 align-middle truncate-cell">
                             <span class="inline-block px-2 py-0.5 rounded bg-blue-600 text-white font-bold shadow">${instr.route}</span>
                         </td>
-                        <td class="p-1 sm:p-3 align-middle text-slate-200">${instr.stopName}</td>
-                        <td class="p-1 sm:p-3 align-middle text-left whitespace-nowrap">${etaHtml}</td>
+                        <td class="p-1 sm:p-3 align-middle text-slate-200 truncate-cell">${instr.stopName}</td>
+                        <td class="p-1 sm:p-3 align-middle text-left whitespace-nowrap truncate-cell">${etaHtml}</td>
                     </tr>
                 `;
             }
 
             if (rowsHtml === '') {
-                rowsHtml = `<tr><td colspan="4" class="p-4 text-center text-slate-400">No active bus services available at the moment.</td></tr>`;
+                rowsHtml = `<tr><td colspan="4" class="p-4 text-center text-slate-400 truncate-cell">No active bus services available at the moment.</td></tr>`;
             }
 
             tbody.innerHTML = rowsHtml;
