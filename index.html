@@ -1,293 +1,283 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bus ETA 1.5</title>
+    <title>邨巴 Bus ETA 1.1</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .truncate-cell {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 8px;
+        }
+        /* Responsive font sizes */
+        .app-title {
+            font-size: 15px;
+        }
+        .app-header {
+            font-size: 15px;
+        }
+        .app-data {
+            font-size: 15px;
+        }
+        @media (min-width: 768px) {
+            .app-title { font-size: 40px; }
+            .app-header { font-size: 40px; }
+            .app-data { font-size: 40px; }
+        }
+        @media (min-width: 1024px) {
+            .app-title { font-size: 50px; }
+            .app-header { font-size: 50px; }
+            .app-data { font-size: 50px; }
         }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-1 sm:p-2">
-
-    <div class="max-w-4xl mx-auto">
-        <header class="mb-2 border-b border-slate-700 pb-1">
-            <h1 id="headerTitle" class="text-[15px] sm:text-[50px] font-bold tracking-tight text-cyan-400 leading-tight truncate-cell">
-                縉皇居交通 <span id="headerTimestamp" class="font-normal text-slate-300 ml-1">Loading...</span>
-            </h1>
-        </header>
-
-        <div class="bg-slate-800 rounded-lg shadow-xl overflow-hidden border border-slate-700">
-            <div class="overflow-x-auto">
-                <table id="etaTable" class="w-full text-left border-collapse table-fixed">
-                    <thead>
-                        <tr class="bg-slate-700/60 border-b border-slate-700 text-slate-200 font-semibold text-[16px] sm:text-[50px] leading-tight">
-                            <th class="p-1 sm:p-3 w-[20%] truncate-cell">開往</th>
-                            <th class="p-1 sm:p-3 w-[20%] truncate-cell">路線</th>
-                            <th class="p-1 sm:p-3 w-[28%] truncate-cell">車站</th>
-                            <th class="p-1 sm:p-3 w-[32%] truncate-cell">分鐘</th>
-                        </tr>
-                    </thead>
-                    <tbody id="etaTableBody" class="divide-y divide-slate-700 text-[15px] sm:text-[50px] leading-tight">
-                        <tr>
-                            <td colspan="4" class="p-4 text-center text-slate-400 truncate-cell">Loading bus schedules and live APIs...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+<body class="bg-black text-white p-2">
+    <div class="w-full max-w-7xl mx-auto">
+        <!-- Title Line -->
+        <div id="title-line" class="app-title font-bold mb-2 truncate">
+            縉皇居交通 <span id="current-datetime">01-Aug-2026 19:49:00</span>
         </div>
-        
-        <footer class="mt-2 text-center text-[11px] sm:text-[18px] text-slate-500">
-            Ocean Point Private Bus & Public Transit ETA Monitor &bull; Times in HK Time (GMT+8)
-        </footer>
+
+        <!-- Bus Table -->
+        <div class="w-full overflow-x-auto">
+            <table class="w-full border-collapse table-fixed">
+                <thead>
+                    <tr class="app-header text-left border-b border-gray-800">
+                        <th class="py-1 px-1 overflow-hidden whitespace-nowrap text-ellipsis" style="width: 20%;">開往</th>
+                        <th class="py-1 px-1 overflow-hidden whitespace-nowrap text-ellipsis" style="width: 20%;">路線</th>
+                        <th class="py-1 px-1 overflow-hidden whitespace-nowrap text-ellipsis" style="width: 28%;">車站</th>
+                        <th class="py-1 px-1 overflow-hidden whitespace-nowrap text-ellipsis" style="width: 32%;">分鐘</th>
+                    </tr>
+                </thead>
+                <tbody id="bus-table-body" class="app-data">
+                    <!-- Rows will be populated dynamically -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
-        const busInstructions = [
-            {
-                type: 'schedule',
-                direction: '縉皇居',
-                route: '邨巴',
-                stopName: '荃灣站',
-                scheduleKey: 'TsuenWantoOceanPointe'
-            },
-            {
-                type: 'schedule',
-                direction: '荃灣',
-                route: '邨巴',
-                stopName: '縉皇居',
-                scheduleKey: 'OceanPointeToTsuenWan'
-            },
-            { type: 'api', co: 'KMB', route: '234A', direction: '荃灣', stopName: '海韻花園', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/234A/1' },
-            { type: 'api', co: 'KMB', route: '234B', direction: '荃灣', stopName: '海韻花園', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/234B/1' },
-            { type: 'api', co: 'KMB', route: '53', direction: '荃灣', stopName: '海韻花園', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/53/1' },
-            { type: 'api', co: 'GMB', route: '96C', direction: '荃灣', stopName: '碧堤半島', url: 'https://data.etagmb.gov.hk/eta/route-stop/2008093/2/1' },
-            { type: 'api', co: 'KMB', route: '52X', direction: '旺角', stopName: '海韻花園', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/52X/1' },
-            { type: 'api', co: 'CTB', route: '952', direction: '銅鑼灣', stopName: '海韻花園', url: 'https://rt.data.gov.hk/v2/transport/citybus/eta/ctb/002618/952' },
-            { type: 'api', co: 'KMB', route: 'A38', direction: '機場', stopName: '深慈街', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/5A2A66038B409879/A38/1' },
-            { type: 'api', co: 'KMB', route: '52X', direction: '屯門', stopName: '碧堤半島', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B47C12A965D7B481/52X/1' },
-            { type: 'api', co: 'KMB', route: '53', direction: '元朗', stopName: '碧堤半島', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B47C12A965D7B481/53/1' },
-            { type: 'api', co: 'CTB', route: '952', direction: '屯門', stopName: '碧堤半島', url: 'https://rt.data.gov.hk/v2/transport/citybus/eta/ctb/002619/952' },
-            { type: 'api', co: 'KMB', route: '234C', direction: '觀塘', stopName: '海韻花園', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/234C/1' },
-            { type: 'api', co: 'KMB', route: '234D', direction: '觀塘', stopName: '海韻花園', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/234D/1' },
-            { type: 'api', co: 'KMB', route: '261B', direction: '九龍站', stopName: '海韻花園', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/261B/1' },
-            { type: 'api', co: 'KMB', route: '48P', direction: '火炭', stopName: '海韻花園', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/48P/1' },
-            { type: 'api', co: 'KMB', route: '52P', direction: '旺角', stopName: '海韻花園', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/52P/1' }
-        ];
-
-        const estateSchedules = {
-            'TsuenWantoOceanPointe': {
-                col0: [
-                    "06:45","07:05","07:25","07:45","08:05","08:25","08:45","09:05","09:25","09:45",
-                    "10:05","10:25","10:45","11:05","11:25","11:45","12:05","12:25","12:45","13:05",
-                    "13:45","15:05","15:45","16:05","16:25","16:45","17:05","17:25","17:45","18:05",
-                    "18:25","18:45","19:05","19:25","19:45","20:05"
-                ],
-                col1: [
-                    "06:45","07:05","07:25","07:45","08:05","08:25","08:45","09:05","09:25","09:45",
-                    "10:05","10:25","10:45","11:05","11:25","11:45","12:05","12:25","12:45","13:05",
-                    "13:45","15:05","15:45","16:05","16:25","16:45","17:05","17:25","17:45","18:05",
-                    "18:25","18:45","19:05","19:25","19:45"
-                ],
-                col2: [
-                    "07:05","07:50","08:35","09:20","10:05","10:50","11:35","12:20","13:05","15:05",
-                    "15:50","16:35","17:20","18:05","18:50","19:35"
+        // Ocean Point Private Shuttle Schedules parsed from provided image schedule tables
+        const shuttleSchedules = {
+            "TsuenWantoOceanPointe.jpg": {
+                // Column 0: Mon-Fri, Column 1: Sat, Column 2: Sun & PH
+                colTimes: [
+                    ["06:45", "07:05", "07:25", "07:45", "08:05", "08:25", "08:45", "09:05", "09:25", "09:45", "10:05", "10:25", "10:45", "11:05", "11:25", "11:45", "12:05", "12:25", "12:45", "13:05", "13:45", "15:05", "15:45", "16:05", "16:25", "16:45", "17:05", "17:25", "17:45", "18:05", "18:25", "18:45", "19:05", "19:25", "19:45", "20:05"],
+                    ["06:45", "07:05", "07:25", "07:45", "08:05", "08:25", "08:45", "09:05", "09:25", "09:45", "10:05", "10:25", "10:45", "11:05", "11:25", "11:45", "12:05", "12:25", "12:45", "13:05", "13:45", "15:05", "15:45", "16:05", "16:25", "16:45", "17:05", "17:25", "17:45", "18:05", "18:25", "18:45", "19:05", "19:25", "19:45"],
+                    ["07:05", "07:50", "08:35", "09:20", "10:05", "10:50", "11:35", "12:20", "13:05", "15:05", "15:50", "16:35", "17:20", "18:05", "18:50", "19:35"]
                 ]
             },
-            'OceanPointeToTsuenWan': {
-                col0: [
-                    "06:30","06:50","07:10","07:20","07:30","07:40","07:50","08:00","08:10","08:20",
-                    "08:30","08:50","09:10","09:30","09:50","10:10","10:30","10:50","11:10","11:30",
-                    "11:50","12:10","12:30","12:50","13:30","14:50","15:30","15:50","16:10","16:30",
-                    "16:50","17:10","17:30","17:50","18:10","18:30","18:50","19:10","19:30","19:50"
-                ],
-                col1: [
-                    "06:30","06:50","07:10","07:30","07:50","08:10","08:30","08:50","09:10","09:30",
-                    "09:50","10:10","10:30","10:50","11:10","11:30","11:50","12:10","12:30","12:50",
-                    "13:30","14:50","15:30","15:50","16:10","16:30","16:50","17:10","17:30","17:50",
-                    "18:10","18:30","18:50","19:10","19:30"
-                ],
-                col2: [
-                    "06:50","07:35","08:20","09:05","09:50","10:35","11:20","12:05","12:50","14:50",
-                    "15:35","16:20","17:05","17:50","18:35","19:20"
+            "OceanPointeToTsuenWan.jpg": {
+                colTimes: [
+                    ["06:30", "06:50", "07:10", "07:20", "07:30", "07:40", "07:50", "08:00", "08:10", "08:20", "08:30", "08:50", "09:10", "09:30", "09:50", "10:10", "10:30", "10:50", "11:10", "11:30", "11:50", "12:10", "12:30", "12:50", "13:30", "14:50", "15:30", "15:50", "16:10", "16:30", "16:50", "17:10", "17:30", "17:50", "18:10", "18:30", "18:50", "19:10", "19:30", "19:50"],
+                    ["06:30", "06:50", "07:10", "07:30", "07:50", "08:10", "08:30", "08:50", "09:10", "09:30", "09:50", "10:10", "10:30", "10:50", "11:10", "11:30", "11:50", "12:10", "12:30", "12:50", "13:30", "14:50", "15:30", "15:50", "16:10", "16:30", "16:50", "17:10", "17:30", "17:50", "18:10", "18:30", "18:50", "19:10", "19:30"],
+                    ["06:50", "07:35", "08:20", "09:05", "09:50", "10:35", "11:20", "12:05", "12:50", "14:50", "15:35", "16:20", "17:05", "17:50", "18:35", "19:20"]
                 ]
             }
         };
 
-        let hkHolidaysCache = null;
+        const instructions = [
+            { busCoId: "屋苑", route: "邨巴", direction: "縉皇居", stopName: "荃灣", targetSrc: "TsuenWantoOceanPointe.jpg" },
+            { busCoId: "屋苑", route: "邨巴", direction: "荃灣", stopName: "縉皇居", targetSrc: "OceanPointeToTsuenWan.jpg" },
+            { busCoId: "KMB", route: "234A", direction: "荃灣", stopName: "海韻花園", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/234A/1" },
+            { busCoId: "KMB", route: "234B", direction: "荃灣", stopName: "海韻花園", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/234B/1" },
+            { busCoId: "KMB", route: "53", direction: "荃灣", stopName: "海韻花園", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/53/1" },
+            { busCoId: "KMB", route: "52X", direction: "旺角", stopName: "海韻花園", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/52X/1" },
+            { busCoId: "CTB", route: "952", direction: "銅鑼灣", stopName: "海韻花園", targetSrc: "https://rt.data.gov.hk/v2/transport/citybus/eta/ctb/002618/952" },
+            { busCoId: "KMB", route: "A38", direction: "機場", stopName: "深井深慈街", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/5A2A66038B409879/A38/1" },
+            { busCoId: "KMB", route: "52X", direction: "屯門", stopName: "碧堤半島", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/B47C12A965D7B481/52X/1" },
+            { busCoId: "CTB", route: "952", direction: "屯門", stopName: "碧堤半島", targetSrc: "https://rt.data.gov.hk/v2/transport/citybus/eta/ctb/002619/952" },
+            { busCoId: "KMB", route: "53", direction: "元朗", stopName: "碧堤半島", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/B47C12A965D7B481/53/1" },
+            { busCoId: "KMB", route: "234C", direction: "觀塘", stopName: "海韻花園", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/234C/1" },
+            { busCoId: "KMB", route: "234D", direction: "觀塘", stopName: "海韻花園", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/234D/1" },
+            { busCoId: "KMB", route: "261B", direction: "九龍站", stopName: "海韻花園", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/261B/1" },
+            { busCoId: "KMB", route: "48P", direction: "火炭", stopName: "海韻花園", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/48P/1" },
+            { busCoId: "KMB", route: "52P", direction: "旺角", stopName: "海韻花園", targetSrc: "https://data.etabus.gov.hk/v1/transport/kmb/eta/ED9E5ACF98190E5C/52P/1" }
+        ];
 
-        async function fetchHKPublicHolidays(year) {
-            if (hkHolidaysCache && hkHolidaysCache.year === year) {
-                return hkHolidaysCache.dates;
+        let cachedHolidays = null;
+
+        async function fetchHongKongHolidays(year) {
+            if (cachedHolidays && cachedHolidays.year === year) {
+                return cachedHolidays.dates;
             }
             try {
-                const response = await fetch(`https://www.gov.hk/en/about/abouthk/time/data/govhkholidays_${year}.ics`);
-                if (!response.ok) throw new Error('Failed to fetch ICS calendar');
-                const text = await response.text();
-                const dates = [];
-                const lines = text.split('\n');
-                for (let line of lines) {
-                    if (line.startsWith('DTSTART;VALUE=DATE:')) {
-                        const dateStr = line.replace('DTSTART;VALUE=DATE:', '').trim();
-                        if (dateStr.length === 8) {
-                            const formatted = `${dateStr.substring(0,4)}-${dateStr.substring(4,6)}-${dateStr.substring(6,8)}`;
-                            dates.push(formatted);
+                // Official HK Government 1823 public holidays API in JSON format
+                const res = await fetch(`https://www.1823.gov.hk/common/ical/v1/en.json`);
+                if (!res.ok) return [];
+                const data = await res.json();
+                const holidays = [];
+                if (data && data.vcalendar) {
+                    for (const cal of data.vcalendar) {
+                        if (cal.vevent) {
+                            for (const ev of cal.vevent) {
+                                // dtstart can be an array or string like "20260101" or [ "20260101", { ... } ]
+                                let dt = ev.dtstart;
+                                if (Array.isArray(dt)) dt = dt[0];
+                                if (typeof dt === 'string' && dt.length >= 8) {
+                                    const y = dt.substring(0, 4);
+                                    const m = dt.substring(4, 6);
+                                    const d = dt.substring(6, 8);
+                                    if (y === String(year)) {
+                                        holidays.add(`${y}-${m}-${d}`);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-                hkHolidaysCache = { year, dates };
-                return dates;
-            } catch (err) {
-                console.warn('Could not fetch government public holidays, falling back to weekend check:', err);
+                cachedHolidays = { year, dates: holidays };
+                return holidays;
+            } catch (e) {
+                console.warn("Could not fetch government public holidays, falling back to day-of-week check.", e);
                 return [];
             }
         }
 
-        async function getScheduleColumn(now) {
+        async function getScheduleColumnIndex(now) {
             const year = now.getFullYear();
-            const holidays = await fetchHKPublicHolidays(year);
+            const holidays = await fetchHongKongHolidays(year);
+            const dateStr = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             
-            const yearStr = now.getFullYear();
-            const monthStr = String(now.getMonth() + 1).padStart(2, '0');
-            const dayStr = String(now.getDate()).padStart(2, '0');
-            const dateKey = `${yearStr}-${monthStr}-${dayStr}`;
-
-            const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Mon, ..., 6 = Sat
-
-            if (dayOfWeek === 0 || holidays.includes(dateKey)) {
-                return 2; // Sunday or Public Holiday
-            }
-            if (dayOfWeek === 6) {
+            const dayOfWeek = now.getDay(); // 0: Sun, 1-5: Mon-Fri, 6: Sat
+            
+            if (dayOfWeek === 0 || holidays.includes(dateStr)) {
+                return 2; // Sunday & Public Holiday
+            } else if (dayOfWeek === 6) {
                 return 1; // Saturday
+            } else {
+                return 0; // Monday to Friday
             }
-            return 0; // Monday to Friday
         }
 
-        async function calculateScheduleEtas(scheduleKey, now) {
-            const colIndex = await getScheduleColumn(now);
-            const schedObj = estateSchedules[scheduleKey];
-            let timesList = [];
-            if (colIndex === 2) timesList = schedObj.col2;
-            else if (colIndex === 1) timesList = schedObj.col1;
-            else timesList = schedObj.col0;
+        async function calculateShuttleEtas(targetSrc, now) {
+            const scheduleObj = shuttleSchedules[targetSrc];
+            if (!scheduleObj) return [];
 
-            if (!timesList || timesList.length === 0) return [];
+            const colIndex = await getScheduleColumnIndex(now);
+            const times = scheduleObj.colTimes[colIndex] || [];
 
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            const etasInMinutes = [];
+            const etas = [];
 
-            for (let timeStr of timesList) {
+            for (const timeStr of times) {
                 const [h, m] = timeStr.split(':').map(Number);
                 const busMinutes = h * 60 + m;
                 const diff = busMinutes - currentMinutes;
                 if (diff >= 0) {
-                    etasInMinutes.push(diff);
+                    etas.push(diff);
+                    if (etas.length >= 3) break;
                 }
-                if (etasInMinutes.length >= 3) break;
             }
-            return etasInMinutes;
+            return etas;
         }
 
         async function fetchApiEtas(url) {
             try {
-                const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+                const response = await fetch(url);
                 if (!response.ok) return [];
-                const json = await response.json();
-                if (!json || !json.data) return [];
-
-                const now = new Date();
+                const data = await response.json();
                 const etas = [];
 
-                const etaEntries = Array.isArray(json.data) ? json.data : [json.data];
-                for (let item of etaEntries) {
-                    if (!item.eta) continue;
-                    const etaTime = new Date(item.eta);
-                    if (isNaN(etaTime.getTime())) continue;
-
-                    const diffMs = etaTime - now;
-                    const diffMins = Math.round(diffMs / 60000);
-                    if (diffMins >= 0) {
-                        etas.push(diffMins);
+                // Check KMB format vs Citybus format
+                if (data.type === "ETA" && Array.isArray(data.data)) {
+                    // KMB API format
+                    const now = new Date();
+                    for (const item of data.data) {
+                        if (item.eta) {
+                            const etaTime = new Date(item.eta);
+                            const diffMinutes = Math.round((etaTime - now) / 60000);
+                            if (diffMinutes >= 0) {
+                                etas.push(diffMinutes);
+                            }
+                        }
+                        if (etas.length >= 3) break;
                     }
-                    if (etas.length >= 3) break;
+                } else if (data.type === "ETA-Route-Stop" && data.data && Array.isArray(data.data.eta)) {
+                    // Citybus API format
+                    for (const item of data.data.eta) {
+                        if (typeof item.diff === 'number' && item.diff >= 0) {
+                            etas.push(item.diff);
+                        } else if (item.timestamp) {
+                            const now = new Date();
+                            const etaTime = new Date(item.timestamp);
+                            const diffMinutes = Math.round((etaTime - now) / 60000);
+                            if (diffMinutes >= 0) {
+                                etas.push(diffMinutes);
+                            }
+                        }
+                        if (etas.length >= 3) break;
+                    }
                 }
                 return etas;
-            } catch (err) {
-                console.warn('API fetch error for URL:', url, err);
+            } catch (e) {
+                console.error("API fetch error for URL:", url, e);
                 return [];
             }
         }
 
-        function renderEtaBadge(etaVal) {
-            if (etaVal === null || etaVal === undefined || isNaN(etaVal)) return '';
-            let bgColor = 'bg-emerald-600'; // > 15 mins (Green)
-            if (etaVal < 9) {
-                bgColor = 'bg-rose-600'; // < 9 mins (Red)
-            } else if (etaVal >= 9 && etaVal <= 15) {
-                bgColor = 'bg-amber-600'; // 9 to 15 mins (Orange)
+        function getEtaBackgroundColor(eta) {
+            if (eta < 9) {
+                return 'background-color: #ef4444; color: #ffffff;'; // Red
+            } else if (eta >= 9 && eta <= 15) {
+                return 'background-color: #f97316; color: #ffffff;'; // Orange
+            } else {
+                return 'background-color: #22c55e; color: #ffffff;'; // Green
             }
-            return `<span class="inline-block px-2 py-0.5 mr-1 mb-1 rounded text-white font-bold ${bgColor}">${etaVal}</span>`;
         }
 
         async function updateBusData() {
             const now = new Date();
             
-            // Format timestamp: DD-Mon-YYYY HH:MM:SS
-            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            // Format title date and time exactly as requested
+            const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
             const day = String(now.getDate()).padStart(2, '0');
-            const month = months[now.getMonth()];
-            const year = now.getFullYear();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const mins = String(now.getMinutes()).padStart(2, '0');
-            const secs = String(now.getSeconds()).padStart(2, '0');
+            const mon = months[now.getMonth()];
+            const yr = now.getFullYear();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
             
-            document.getElementById('headerTimestamp').textContent = `${day}-${month}-${year} ${hours}:${mins}:${secs}`;
+            const datetimeStr = `${day}-${mon}-${yr} ${hh}:${mm}:${ss}`;
+            document.getElementById('current-datetime').textContent = datetimeStr;
 
-            const tbody = document.getElementById('etaTableBody');
+            const tbody = document.getElementById('bus-table-body');
             let rowsHtml = '';
 
-            for (let instr of busInstructions) {
+            for (const inst of instructions) {
                 let etas = [];
-                try {
-                    if (instr.type === 'schedule') {
-                        etas = await calculateScheduleEtas(instr.scheduleKey, now);
-                    } else if (instr.type === 'api') {
-                        etas = await fetchApiEtas(instr.url);
-                    }
-                } catch (e) {
-                    console.error('Error processing instruction:', instr, e);
+                if (inst.busCoId === "屋苑") {
+                    etas = await calculateShuttleEtas(inst.targetSrc, now);
+                } else {
+                    etas = await fetchApiEtas(inst.targetSrc);
                 }
 
+                // Skip the route if there are no more buses for the current date
                 if (!etas || etas.length === 0) {
                     continue;
                 }
 
-                let etaHtml = '';
+                // Format ETAs with colored rectangular backgrounds
+                let etaHtmls = [];
                 for (let i = 0; i < Math.min(etas.length, 3); i++) {
-                    etaHtml += renderEtaBadge(etas[i]);
+                    const val = etas[i];
+                    const style = getEtaBackgroundColor(val);
+                    etaHtmls.push(`<span class="inline-block px-1.5 py-0.5 rounded mr-1" style="${style}">${val}</span>`);
                 }
 
                 rowsHtml += `
-                    <tr class="hover:bg-slate-700/45 transition-colors border-b border-slate-700/50">
-                        <td class="p-1 sm:p-3 align-middle text-slate-100 truncate-cell">${instr.direction}</td>
-                        <td class="p-1 sm:p-3 align-middle truncate-cell">
-                            <span class="inline-block px-2 py-0.5 rounded bg-blue-600 text-white font-bold shadow">${instr.route}</span>
-                        </td>
-                        <td class="p-1 sm:p-3 align-middle text-slate-200 truncate-cell">${instr.stopName}</td>
-                        <td class="p-1 sm:p-3 align-middle text-left whitespace-nowrap truncate-cell">${etaHtml}</td>
+                    <tr class="border-b border-gray-900">
+                        <td class="py-1 px-1 overflow-hidden whitespace-nowrap text-ellipsis">${inst.direction}</td>
+                        <td class="py-1 px-1 overflow-hidden whitespace-nowrap text-ellipsis"><span class="inline-block px-1 bg-blue-600 text-white rounded">${inst.route}</span></td>
+                        <td class="py-1 px-1 overflow-hidden whitespace-nowrap text-ellipsis">${inst.stopName}</td>
+                        <td class="py-1 px-1 overflow-hidden whitespace-nowrap text-ellipsis">${etaHtmls.join(' ')}</td>
                     </tr>
                 `;
-            }
-
-            if (rowsHtml === '') {
-                rowsHtml = `<tr><td colspan="4" class="p-4 text-center text-slate-400 truncate-cell">No active bus services available at the moment.</td></tr>`;
             }
 
             tbody.innerHTML = rowsHtml;
@@ -295,6 +285,7 @@
 
         window.onload = function() {
             updateBusData();
+            // Hidden Autorefresh every 10 seconds (no buttons or messages shown)
             setInterval(updateBusData, 10000);
         };
     </script>
